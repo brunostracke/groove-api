@@ -7,6 +7,7 @@ const app = express()
 
 const token = process.env.SYMPLA_TOKEN;
 const baseApiUrl = process.env.SYMPLA_API;
+const port = process.env.PORT;
 
 app.use(cors());
 
@@ -43,6 +44,6 @@ app.get("/", async (req, res) => {
   res.json(codes)
 })
 
-app.listen(3010, () => {
+app.listen(port, () => {
   console.log("listening on port 3010...")
 })
