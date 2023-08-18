@@ -8,17 +8,31 @@ const config = {
     s_token: token,
   },
 };
-function getSymplaEvents() {
-  return axios.get(
+
+async function getSymplaEvents() {
+  return await axios.get(
     `${baseApiUrl}/events?fields=id,name,start_date&pagesize=200`,
     config
   );
 }
 
-function getSymplaParticipants(eventId) {
-  return axios.get(`${baseApiUrl}/events/2113137/orders`, config);
+async function getSymplaParticipants(eventId) {
+  let page = 1;
+  let hasNext = true;
+  let participants = [];
+  while (hasNext) {
+    const { data } = await axios.get(
+      `${baseApiUrl}/events/${eventId}/participants?page=${page}`,
+      config
+    );
+    hasNext = data.pagination.has_next;
+    page++;
+    participants = [...participants, ...data.data];
+  }
+  return participants;
 }
 
 module.exports = {
   getSymplaEvents,
+  getSymplaParticipants,
 };

@@ -1,4 +1,4 @@
-const axios = require("axios");
+const { getSymplaParticipants } = require("../services/symplaApi");
 
 const token = process.env.SYMPLA_TOKEN;
 const baseApiUrl = process.env.SYMPLA_API;
@@ -6,64 +6,42 @@ const baseApiUrl = process.env.SYMPLA_API;
 async function getCodes(req, res) {
   const eventId = req.params.id;
   try {
-    const ids = await getOrderIds(eventId);
-  
-    const tickets = await Promise.all(
-      ids.map((id) => {
-        return getTickets(eventId, id);
-      })
-    );
-  
-    const codes = getCodesByQuantity(tickets);
-    const result = Object.keys(codes).map((code) => {
-      return {
-        id: code,
-        code: code,
-        quantity: codes[code],
-      };
-    });
-    return res.status(200).json(result);
-  } catch (error) {
-    return res.status(400).json([])
-  }
-}
+    const participants = await getSymplaParticipants(eventId);
 
-async function getOrderIds(eventId) {
+    const initialState = {
+      eventId,
+      revenue: 0,
+      liquidRevenue: 0,
+      count: 0,
+      codesQuantity: [],
+    };
 
-    const { data } = await axios.get(`${baseApiUrl}/events/${eventId}/orders`, {
-      headers: {
-        s_token: token,
-      },
-    });
-    return data.data.map((dt) => dt.id);
-}
-
-async function getTickets(eventId, id) {
-    return axios.get(
-      `${baseApiUrl}/events/${eventId}/orders/${id}/participants`,
-      {
-        headers: {
-          s_token: token,
-        },
-      }
-    );
-}
-
-function getCodesByQuantity(tickets) {
-  return tickets.reduce((acc, order) => {
-    const { data } = order;
-    data.data.forEach((dt) => {
-      const { order_discount } = dt;
+    const result = participants.reduce((acc, part) => {
+      const { order_discount, ticket_sale_price } = part;
+      acc["revenue"] = acc["revenue"] + ticket_sale_price;
+      acc.liquidRevenue = acc.liquidRevenue + ticket_sale_price / 1.1;
+      acc.count++;
       if (order_discount) {
         const code = order_discount.split(" - ")[1];
-        if (!acc[code]) acc[code] = 0;
-        acc[code]++;
+        const index = acc.codesQuantity.findIndex((obj) => (obj.id === code));
+        if (index < 0) {
+          acc.codesQuantity.push({
+            id: code,
+            quantity: 1,
+          });
+        } else {
+          acc.codesQuantity[index].quantity++;
+        }
       }
-    });
-    return acc;
-  }, {});
+      return acc;
+    }, initialState);
+
+    return res.status(200).json(result);
+  } catch (error) {
+    return res.status(400).json([]);
+  }
 }
 
 module.exports = {
   getCodes,
-}
+};
