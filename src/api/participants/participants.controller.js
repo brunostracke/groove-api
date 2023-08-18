@@ -5,41 +5,40 @@ const baseApiUrl = process.env.SYMPLA_API;
 
 async function getCodes(req, res) {
   const eventId = req.params.id;
-  const ids = await getOrderIds(eventId);
-
-  const tickets = await Promise.all(
-    ids.map((id) => {
-      return getTickets(eventId, id);
-    })
-  );
-
-  const codes = getCodesByQuantity(tickets);
-  const result = Object.keys(codes).map((code) => {
-    return {
-      id: code,
-      code: code,
-      quantity: codes[code],
-    };
-  });
-  return res.status(200).json(result);
+  try {
+    const ids = await getOrderIds(eventId);
+  
+    const tickets = await Promise.all(
+      ids.map((id) => {
+        return getTickets(eventId, id);
+      })
+    );
+  
+    const codes = getCodesByQuantity(tickets);
+    const result = Object.keys(codes).map((code) => {
+      return {
+        id: code,
+        code: code,
+        quantity: codes[code],
+      };
+    });
+    return res.status(200).json(result);
+  } catch (error) {
+    return res.status(400).json([])
+  }
 }
 
 async function getOrderIds(eventId) {
-  try {
+
     const { data } = await axios.get(`${baseApiUrl}/events/${eventId}/orders`, {
       headers: {
         s_token: token,
       },
     });
     return data.data.map((dt) => dt.id);
-  } catch (error) {
-    console.log(error);
-    throw error;
-  }
 }
 
 async function getTickets(eventId, id) {
-  try {
     return axios.get(
       `${baseApiUrl}/events/${eventId}/orders/${id}/participants`,
       {
@@ -48,10 +47,6 @@ async function getTickets(eventId, id) {
         },
       }
     );
-  } catch (error) {
-    console.log(error);
-    throw error;
-  }
 }
 
 function getCodesByQuantity(tickets) {
@@ -71,4 +66,4 @@ function getCodesByQuantity(tickets) {
 
 module.exports = {
   getCodes,
-};
+}
