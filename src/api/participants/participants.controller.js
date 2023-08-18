@@ -7,9 +7,11 @@ async function getCodes(req, res) {
   const eventId = req.params.id;
   const ids = await getOrderIds(eventId);
 
-  const tickets = await Promise.all(ids.map(id => {
-    return getTickets(eventId, id)
-  }));
+  const tickets = await Promise.all(
+    ids.map((id) => {
+      return getTickets(eventId, id);
+    })
+  );
 
   const codes = getCodesByQuantity(tickets);
   const result = Object.keys(codes).map((code) => {
@@ -18,7 +20,7 @@ async function getCodes(req, res) {
       code: code,
       quantity: codes[code],
     };
-  })
+  });
   return res.status(200).json(result);
 }
 
@@ -31,18 +33,21 @@ async function getOrderIds(eventId) {
     });
     return data.data.map((dt) => dt.id);
   } catch (error) {
-   console.log(error);
+    console.log(error);
     throw error;
   }
 }
 
 async function getTickets(eventId, id) {
   try {
-    return axios.get(`${baseApiUrl}/events/${eventId}/orders/${id}/participants`, {
-      headers: {
-        s_token: token
-      },
-    });
+    return axios.get(
+      `${baseApiUrl}/events/${eventId}/orders/${id}/participants`,
+      {
+        headers: {
+          s_token: token,
+        },
+      }
+    );
   } catch (error) {
     console.log(error);
     throw error;
@@ -54,7 +59,7 @@ function getCodesByQuantity(tickets) {
     const { data } = order;
     data.data.forEach((dt) => {
       const { order_discount } = dt;
-      if(order_discount) {
+      if (order_discount) {
         const code = order_discount.split(" - ")[1];
         if (!acc[code]) acc[code] = 0;
         acc[code]++;
@@ -64,6 +69,6 @@ function getCodesByQuantity(tickets) {
   }, {});
 }
 
-module.exports ={
-  getCodes
-}
+module.exports = {
+  getCodes,
+};
